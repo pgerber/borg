@@ -507,27 +507,7 @@ class Archiver:
                 except OSError:
                     pass
             logger.debug('Processing files ...')
-            if args.content_from_command:
-                path = args.stdin_name
-                if not dry_run:
-                    try:
-                        try:
-                            proc = subprocess.Popen(args.paths, stdout=subprocess.PIPE)
-                        except (FileNotFoundError, PermissionError) as e:
-                            self.print_error('Failed to execute command: %s', e)
-                            return self.exit_code
-                        status = fso.process_pipe(path=path, cache=cache, fd=proc.stdout)
-                        rc = proc.wait()
-                        if rc != 0:
-                            self.print_error('Command %r exited with status %d', args.paths[0], rc)
-                            return self.exit_code
-                    except BackupOSError as e:
-                        self.print_error('%s: %s', path, e)
-                        return self.exit_code
-                else:
-                    status = '-'
-                self.print_file_status(status, path)
-            else:
+            if not args.content_from_command:
                 for path in args.paths:
                     if path == '-':  # stdin
                         path = args.stdin_name
@@ -561,6 +541,26 @@ class Archiver:
                                       exclude_caches=args.exclude_caches, exclude_if_present=args.exclude_if_present,
                                       keep_exclude_tags=args.keep_exclude_tags, skip_inodes=skip_inodes,
                                       restrict_dev=restrict_dev, read_special=args.read_special, dry_run=dry_run)
+            else:
+                path = args.stdin_name
+                if not dry_run:
+                    try:
+                        try:
+                            proc = subprocess.Popen(args.paths, stdout=subprocess.PIPE)
+                        except (FileNotFoundError, PermissionError) as e:
+                            self.print_error('Failed to execute command: %s', e)
+                            return self.exit_code
+                        status = fso.process_pipe(path=path, cache=cache, fd=proc.stdout)
+                        rc = proc.wait()
+                        if rc != 0:
+                            self.print_error('Command %r exited with status %d', args.paths[0], rc)
+                            return self.exit_code
+                    except BackupOSError as e:
+                        self.print_error('%s: %s', path, e)
+                        return self.exit_code
+                else:
+                    status = '-'
+                self.print_file_status(status, path)
             if not dry_run:
                 if args.progress:
                     archive.stats.show_progress(final=True)
